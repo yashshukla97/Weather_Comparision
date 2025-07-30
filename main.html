@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Weather Forecast Comparison</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h2>Compare 14-Day Weather Forecast</h2>
+  <label for="siteDropdown">Select Site:</label>
+  <select id="siteDropdown"></select>
+  <button onclick="getBothWeathers()">Compare Weather</button>
+
+  <div id="openMeteoOutput"></div>
+  <div id="weatherAPIOutput"></div>
+
+  <script>
+    const sites = [
+      { name: "Khambhat", lat: 22.32, lon: 72.44 },
+      { name: "Khilchipur", lat: 24.07, lon: 76.59 },
+      { name: "Odisha", lat: 20.55, lon: 83.37 },
+      { name: "Chhattisgarh", lat: 21.12, lon: 82.48 },
+      { name: "Jhunir", lat: 29.81, lon: 75.37 },
+      { name: "Nangla", lat: 29.86, lon: 75.20 },
+      { name: "Pattikonda", lat: 15.36, lon: 77.49 },
+      { name: "Hindupur", lat: 13.98, lon: 77.48 },
+      { name: "Rayachotti", lat: 14.11, lon: 78.79 },
+      { name: "Santipuram", lat: 12.87, lon: 78.38 },
+      { name: "Yemmiganur", lat: 15.67, lon: 77.48 },
+      { name: "Maddur", lat: 16.89, lon: 77.58 },
+      { name: "Balanagar", lat: 16.94, lon: 78.13 },
+      { name: "Banka (Nalanda)", lat: 24.81, lon: 86.86 },
+      { name: "Banka (Magadh)", lat: 24.81, lon: 86.86 },
+      { name: "Mahoba", lat: 25.32, lon: 79.81 },
+      { name: "Sadashivpet", lat: 17.70, lon: 77.81 },
+      { name: "Padmajiwadi", lat: 18.41, lon: 78.21 },
+      { name: "Mothkur", lat: 17.44, lon: 79.28 },
+      { name: "Godhur-2", lat: 18.80, lon: 78.63 },
+      { name: "Manthani-2", lat: 18.69, lon: 79.63 },
+      { name: "Kosgi", lat: 16.97, lon: 77.65 },
+      { name: "Bohngir", lat: 17.72, lon: 78.98 },
+      { name: "Bhadla-L2", lat: 27.46, lon: 71.97 },
+      { name: "Bhadla-L3", lat: 27.48, lon: 71.99 },
+      { name: "Sidlaghatta", lat: 13.48, lon: 77.90 },
+      { name: "MSEDCL-2", lat: 27.50, lon: 72.47 },
+      { name: "Aklera", lat: 26.47, lon: 71.54 },
+      { name: "Deogarh", lat: 26.91, lon: 71.56 },
+      { name: "Phalodi", lat: 26.90, lon: 71.55 },
+      { name: "Raisar", lat: 26.94, lon: 71.54 },
+      { name: "Dhaulpur", lat: 26.91, lon: 71.56 },
+      { name: "Sikar", lat: 28.14, lon: 72.99 }
+    ];
+
+    const weatherCodes = {
+      0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+      45: "Fog", 48: "Rime fog", 51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
+      56: "Light freezing drizzle", 57: "Dense freezing drizzle", 61: "Slight rain", 63: "Moderate rain",
+      65: "Heavy rain", 66: "Light freezing rain", 67: "Heavy freezing rain", 71: "Slight snow",
+      73: "Moderate snow", 75: "Heavy snow", 77: "Snow grains", 80: "Slight rain showers",
+      81: "Moderate rain showers", 82: "Violent rain showers", 85: "Slight snow showers",
+      86: "Heavy snow showers", 95: "Thunderstorm", 96: "Thunderstorm with slight hail",
+      99: "Thunderstorm with heavy hail"
+    };
+
+    const dropdown = document.getElementById("siteDropdown");
+    sites.forEach(site => {
+      const option = document.createElement("option");
+      option.value = `${site.lat},${site.lon}`;
+      option.text = site.name;
+      dropdown.appendChild(option);
+    });
+
+    
+    function getWeatherClass(conditionText) {
+  const lower = conditionText.toLowerCase();
+  if (lower.includes("sunny") || lower.includes("clear")) return "sunny";
+  if (lower.includes("cloud")) return "cloudy";
+  if (lower.includes("overcast")) return "overcast";
+  if (lower.includes("rain") || lower.includes("showers")) return "rainy";
+  if (lower.includes("drizzle")) return "drizzly";
+  if (lower.includes("fog") || lower.includes("mist") || lower.includes("haze")) return "foggy";
+  if (lower.includes("snow") || lower.includes("sleet")) return "snowy";
+  if (lower.includes("thunder")) return "stormy";
+  if (lower.includes("freez") || lower.includes("ice")) return "freezing";
+  return "unknown";
+}
+
+    async function getBothWeathers() {
+      const [lat, lon] = dropdown.value.split(",");
+      const siteName = dropdown.options[dropdown.selectedIndex].text;
+
+      await Promise.all([
+        getOpenMeteoWeather(lat, lon, siteName),
+        getWeatherAPIWeather(lat, lon, siteName)
+      ]);
+    }
+
+    async function getOpenMeteoWeather(lat, lon, siteName) {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=14`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        let output = `<h3>Open-Meteo Weather for ${siteName}</h3><table><tr><th>Date</th><th>Max Temp</th><th>Min Temp</th><th>Condition</th></tr>`;
+        for (let i = 0; i < data.daily.time.length; i++) {
+          const code = data.daily.weathercode[i];
+          const condition = weatherCodes[code] || "Unknown";
+          const rowClass = getWeatherClass(condition);
+          output += `<tr class="${rowClass}">
+            <td>${data.daily.time[i]}</td>
+            <td>${data.daily.temperature_2m_max[i]}°C</td>
+            <td>${data.daily.temperature_2m_min[i]}°C</td>
+            <td>${condition}</td></tr>`;
+        }
+        output += "</table>";
+        document.getElementById("openMeteoOutput").innerHTML = output;
+      } catch (err) {
+        document.getElementById("openMeteoOutput").innerHTML = `<p style="color:red;">Error fetching Open-Meteo data</p>`;
+      }
+    }
+
+    async function getWeatherAPIWeather(lat, lon, siteName) {
+      const apiKey = "38ca5cf4fa6644a7a6052820253007"; // Replace with your actual key
+      const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${lat},${lon}&days=14`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        let output = `<h3>WeatherAPI for ${siteName}</h3><table><tr><th>Date</th><th>Max Temp</th><th>Min Temp</th><th>Condition</th></tr>`;
+        for (let day of data.forecast.forecastday) {
+          const condition = day.day.condition.text;
+          const rowClass = getWeatherClass(condition);
+          output += `<tr class="${rowClass}">
+            <td>${day.date}</td>
+            <td>${day.day.maxtemp_c}°C</td>
+            <td>${day.day.mintemp_c}°C</td>
+            <td>${condition}</td></tr>`;
+        }
+        output += "</table>";
+        document.getElementById("weatherAPIOutput").innerHTML = output;
+      } catch (err) {
+        document.getElementById("weatherAPIOutput").innerHTML = `<p style="color:red;">Error fetching WeatherAPI data</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
