@@ -1,110 +1,250 @@
 body {
   font-family: 'Segoe UI', sans-serif;
   padding: 20px;
-  background: linear-gradient(to right, #f5f7fa, #c3cfe2);
+  background: linear-gradient(to right, #707473, #8bdbc1);
   color: #333;
 }
 
 h2 {
   text-align: center;
   color: #0053a7;
+  font-size: 20px;
 }
 
-label{
-    color: #0053a7;
-    font-weight: 500;
-    text-align: center;
+label {
+  color: #f6f8f9;
+  font-weight: 500;
 }
 
 select, button {
-  padding: 8px 14px;
+  padding: 6px 10px;
   background-color: #006e8c;
   color: white;
   font-weight: 700;
+  text-align: center;
   margin: 10px 0;
   font-size: 13px;
   border: none;
-  text-align: center;
   border-radius: 6px;
 }
 
 button {
   background-color: #0168ad;
-  font-weight: 700;
-  color: white;
-  text-align: center;
   cursor: pointer;
 }
 
+option {
+  font-size: 14px;
+}
+
+
 table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   margin-bottom: 30px;
-  background: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  border-radius: 8px;
+  background: #716767;
+  box-shadow: 0 2px 10px rgba(88, 82, 82, 0.1);
+  border-radius: 20px;
+  font-size: 12px;
+  table-layout: fixed;
   overflow: hidden;
 }
 
+
 th, td {
-  padding: 10px;
+  padding: 6px;
   text-align: center;
-  border-bottom: 1px solid #ddd;
+  border: 1px solid #545555;
+  word-wrap: break-word;
+  white-space: normal;
+  vertical-align: top;
 }
 
+/* Reduce font size for better fit */
+th {
+  font-size: 13px;
+}
+
+td {
+  font-size: 12px;
+}
+
+/* Site (first column) style */
+td:first-child {
+  background-color: #f0f8ff;
+  font-weight: bold;
+  color: #003366;
+}
+
+/* Section header */
 h3 {
   margin-top: 40px;
   color: #34495e;
+  font-size: 18px;
 }
 
-/* Weather Condition Styling (Darker & High Contrast) */
-tr.sunny {
-  background-color: #ffeb99; /* Bright yellow */
+/* Weather Condition Coloring (on TDs) */
+td.sunny {
+  background-color: #ffeb99;
   color: #b36b00;
+  font-weight: bold;
 }
 
-tr.cloudy {
-  background-color: #cce0f5; /* Light blue */
+td.cloudy {
+  background-color: #cce0f5;
   color: #1f4e79;
+  font-weight: bold;
 }
 
-tr.overcast {
-  background-color: #b0bec5; /* Gray blue */
+td.overcast {
+  background-color: #b0bec5;
   color: #37474f;
+  font-weight: bold;
 }
 
-tr.rainy {
-  background-color: #a5d6a7; /* Light green */
+td.rainy {
+  background-color: #a5d6a7;
   color: #1b5e20;
+  font-weight: bold;
 }
 
-tr.drizzly {
-  background-color: #b2dfdb; /* Teal-ish */
+td.drizzly {
+  background-color: #b2dfdb;
   color: #004d40;
+  font-weight: bold;
 }
 
-tr.foggy {
-  background-color: #e0e0e0; /* Light gray */
+td.foggy {
+  background-color: #e0e0e0;
   color: #424242;
+  font-weight: bold;
 }
 
-tr.snowy {
-  background-color: #e1f5fe; /* Ice blue */
+td.snowy {
+  background-color: #e1f5fe;
   color: #0277bd;
+  font-weight: bold;
 }
 
-tr.thunderstorm,
-tr.stormy {
-  background-color: #f8bbd0; /* Dark pink */
+td.thunderstorm,
+td.stormy {
+  background-color: #f8bbd0;
   color: #880e4f;
+  font-weight: bold;
 }
 
-tr.freezing {
-  background-color: #d1c4e9; /* Purple tint */
+td.freezing {
+  background-color: #d1c4e9;
   color: #4a148c;
+  font-weight: bold;
 }
 
-tr.unknown {
+td.unknown {
   background-color: #f0f0f0;
   color: #7f8c8d;
+  font-weight: bold;
+}
+
+/* GHI color tags */
+div.ghi-low {
+  background-color: #ffcccc;
+  color: #b30000;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+div.ghi-medium {
+  background-color: #cce5ff;
+  color: #004080;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+div.ghi-high {
+  background-color: #d0f0c0;
+  color: #006600;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+/* Precipitation color tags */
+div.precip-low {
+  background-color: #e6f7ff;
+  color: #0077b6;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+div.precip-medium {
+  background-color: #fff9cc;
+  color: #a67c00;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+div.precip-high {
+  background-color: #b3cde0;
+  color: #003f5c;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+
+th.site-column {
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  font-weight: bold;
+  text-align: center;
+  vertical-align: middle;
+  white-space: normal;         /* Allows text to wrap */
+  word-break: break-word;      /* Wrap long words too */
+  min-width: 110px;
+  max-width: 130px;
+  padding: 8px;
+}
+
+
+/* For the "Sites" header cell */
+th.site-header {
+  background-color: #1a252f;     /* even darker for top-left */
+  color: #ffffff;
+  font-weight: bold;
+  text-align: center;
+  padding: 12px;
+}
+
+/* For the dates row header cells */
+th.date-header {
+  background-color: #34495e;     /* steel blue */
+  color: #ffffff;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  padding: 10px 8px;
+  min-width: 100px;
+}
+
+th.site-header, td.site-column {
+  width: 80px;
+  min-width: 100px;
+  text-align: center;
 }

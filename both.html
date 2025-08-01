@@ -1,15 +1,15 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
 <head>
-  <title>Weather Forecast</title>
+  <title>Weather Forecast Comparison</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>14-Days Weather Forecast</h2>
+  <h2>Compare 14-Day Weather Forecast</h2>
 
   <label for="siteDropdown">Select Site:</label>
   <select id="siteDropdown"></select>
-  <button onclick="getBothWeathers()">Fetch Weather</button>
+  <button onclick="getBothWeathers()">Compare Weather</button>
 
   <div id="combinedOutput"></div>
 
@@ -87,18 +87,6 @@
       return "unknown";
     }
 
-    function getGHIClass(ghi) {
-      if (ghi < 2) return "ghi-low";
-      if (ghi < 4) return "ghi-medium";
-      return "ghi-high";
-    }
-
-    function getPrecipClass(precip) {
-      if (precip === 0) return "precip-low";
-      if (precip < 5) return "precip-medium";
-      return "precip-high";
-    }
-
     async function getBothWeathers() {
       const selectedValue = dropdown.value;
       document.getElementById("combinedOutput").innerHTML = "";
@@ -107,47 +95,87 @@
         ? sites
         : [sites.find(site => `${site.lat},${site.lon}` === selectedValue)];
 
-      let isFirst = true;
       for (let site of siteList) {
-        await getOpenMeteoWeather(site.lat, site.lon, site.name, isFirst);
-        isFirst = false;
+        await getOpenMeteoWeather(site.lat, site.lon, site.name);
+
+        // Commented out WeatherAPI call as per new requirement
+        // await getWeatherAPIWeather(site.lat, site.lon, site.name);
       }
     }
 
-    async function getOpenMeteoWeather(lat, lon, siteName, isHeaderRequired = false) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,precipitation_sum,shortwave_radiation_sum&timezone=auto&forecast_days=14`;
+    async function getOpenMeteoWeather(lat, lon, siteName) {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,shortwave_radiation_sum&timezone=auto&forecast_days=14`;
 
       try {
         const res = await fetch(url);
         const data = await res.json();
-
-        let row = `<tr><th class="site-column" style="text-align:center;">${siteName}</th>`;
+        let table = `<table><tr><th>Date</th><th>Max</th><th>Min</th><th>Condition</th><th>GHI</th><th>Precip</th></tr>`;
         data.daily.time.forEach((date, i) => {
           const cond = weatherCodes[data.daily.weathercode[i]] || "Unknown";
-          const ghi = +(data.daily.shortwave_radiation_sum[i] * 0.277778).toFixed(1);
-          const precip = +data.daily.precipitation_sum[i].toFixed(1);
-          row += `<td class="${getWeatherClass(cond)}">
-            <div>${cond}</div>
-            <div class="${getGHIClass(ghi)}">GHI - ${ghi} kWh/m²</div>
-            <div class="${getPrecipClass(precip)}">Precip - ${precip} mm</div>
-          </td>`;
+          const ghi = +(data.daily.shortwave_radiation_sum[i] * 0.277778).toFixed(2);
+          table += `<tr class="${getWeatherClass(cond)}">
+            <td>${date}</td><td>${data.daily.temperature_2m_max[i]}°C</td>
+            <td>${data.daily.temperature_2m_min[i]}°C</td><td>${cond}</td>
+            <td>${ghi}</td><td>${data.daily.precipitation_sum[i]}</td></tr>`;
         });
-        row += `</tr>`;
+        table += `</table>`;
 
-        if (isHeaderRequired) {
-          let header = `<tr><th class="site-header">Sites</th>`;
-          data.daily.time.forEach(date => {
-            header += `<th class="date-header">${date}</th>`;
-          });
-          header += `</tr>`;
-          document.getElementById("combinedOutput").innerHTML += `<table>${header}${row}</table>`;
-        } else {
-          document.querySelector("#combinedOutput table").innerHTML += row;
-        }
+        // const collapsibleBlock = `
+        //   <button class="collapsible">${siteName} - Open‑Meteo</button>
+        //   <div class="content">${table}</div>`;
+        // document.getElementById("combinedOutput").innerHTML += collapsibleBlock;
+
+        const block = `
+  <h3>${siteName} - Open‑Meteo</h3>
+  ${table}`;
+document.getElementById("combinedOutput").innerHTML += block;
+
+
+        // setupCollapsibles();
       } catch {
         document.getElementById("combinedOutput").innerHTML += `<p style="color:red;">Error fetching Open‑Meteo for ${siteName}</p>`;
       }
     }
+
+    // WeatherAPI function commented out as per instruction
+    /*
+    async function getWeatherAPIWeather(lat, lon, siteName) {
+      const key = "38ca5cf4fa6644a7a6052820253007";
+      const url = `https://api.weatherapi.com/v1/forecast.json?key=${key}&q=${lat},${lon}&days=14`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        let table = `<table><tr><th>Date</th><th>Max</th><th>Min</th><th>Condition</th></tr>`;
+        data.forecast.forecastday.forEach(day => {
+          const cond = day.day.condition.text;
+          table += `<tr class="${getWeatherClass(cond)}">
+            <td>${day.date}</td><td>${day.day.maxtemp_c}°C</td>
+            <td>${day.day.mintemp_c}°C</td><td>${cond}</td></tr>`;
+        });
+        table += `</table>`;
+
+        const collapsibleBlock = `
+          <button class="collapsible">${siteName} - WeatherAPI</button>
+          <div class="content">${table}</div>`;
+        document.getElementById("combinedOutput").innerHTML += collapsibleBlock;
+        setupCollapsibles();
+      } catch {
+        document.getElementById("combinedOutput").innerHTML += `<p style="color:red;">Error fetching WeatherAPI for ${siteName}</p>`;
+      }
+    }
+    */
+
+    // function setupCollapsibles() {
+    //   const coll = document.querySelectorAll(".collapsible");
+    //   coll.forEach(btn => {
+    //     btn.onclick = function () {
+    //       this.classList.toggle("active");
+    //       const content = this.nextElementSibling;
+    //       content.style.display = content.style.display === "block" ? "none" : "block";
+    //     };
+    //   });
+    // }
   </script>
 </body>
-</html>
+</html> -->
