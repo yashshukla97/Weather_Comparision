@@ -3,15 +3,131 @@
 <head>
   <title>Weather Forecast</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .legend {
+      font-size: 13px;
+      font-weight: 500;
+      color: #f9f5f5;
+      margin-top: 10px;
+    }
+    .legend span {
+      background: #094d81;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+    .table-container {
+      max-height: 80vh;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+
+    /* Custom dropdown */
+
+.site-selector {
+  position: relative;
+  display: inline-block;
+  margin-right: 12px;
+}
+#siteButton {
+  background: #006e8c;
+  color: white;
+  font-weight: 600;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.site-list {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  width: 240px;
+  background-color: #303030;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 999;
+  padding: 10px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+.site-list label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  margin: 5px 0;
+  color: #f9f5f5;
+  cursor: pointer;
+}
+.site-list input[type="checkbox"] {
+  margin-right: 8px;
+  transform: scale(1.2);
+}
+.site-list.hidden {
+  display: none;
+}
+  </style>
 </head>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
 <body>
   <h2>14-Days Weather Forecast</h2>
 
-  <label for="siteDropdown">Select Site:</label>
-  <select id="siteDropdown"></select>
-  <button onclick="getBothWeathers()">Fetch Weather</button>
+  <!-- <div class="top-bar">
+  <div>
+    <label>Select Site(s):</label>
+    <div class="site-selector">
+      <button id="siteButton">Select Sites </button>
+      <div id="siteList" class="site-list hidden">
+         <label><button id="clearFilterBtn" type="button">Clear Filter</button></label>
+        <label><input type="checkbox" id="selectAll"/> All Sites</label>
+        <div class="options"></div>
+      </div>
+    </div>
+    <button onclick="getBothWeathers()">Fetch Weather</button>
+    <button class="download-buttons" onclick="downloadExcel()">Download Excel</button>
+    <button class="download-buttons" onclick="downloadPDF()">Download PDF</button> 
+  </div>
+  <div class="legend">
+    <span><strong>R</strong> = Radiation (kWh/m²), <strong>P</strong> = Precipitation (mm)</span>
+  </div>
+</div> -->
 
-  <div id="combinedOutput"></div>
+<div class="top-bar">
+  <div class="left-buttons">
+    <label>Select Site(s):</label>
+    <div class="site-selector">
+      <button id="siteButton">Select Sites </button>
+      <div id="siteList" class="site-list hidden">
+        <label><button id="clearFilterBtn" type="button">Clear Filter</button></label>
+        <label><input type="checkbox" id="selectAll"/> All Sites</label>
+        <div class="options"></div>
+      </div>
+    </div>
+    <button onclick="getBothWeathers()">Get Weather</button>
+  </div>
+
+  <div class="download-buttons">
+    <button onclick="downloadExcel()">Download Excel</button>
+  </div>
+
+  <div class="legend">
+    <span><strong>R</strong> = Radiation (kWh/m²), <strong>P</strong> = Precipitation (mm)</span>
+  </div>
+</div>
+
+
+
+  <div id="combinedOutput" class="table-container"></div>
 
   <script>
     const sites = [
@@ -50,6 +166,77 @@
       { name: "Sikar", lat: 28.14, lon: 72.99 }
     ];
 
+    // Build checkbox list
+const siteListDiv = document.querySelector('.options');
+sites.forEach(site => {
+  const val = `${site.lat},${site.lon}`;
+  const label = document.createElement('label');
+  label.innerHTML = `<input type="checkbox" value="${val}"/> ${site.name}`;
+  siteListDiv.appendChild(label);
+});
+
+// Toggle dropdown open/close
+const dropdown = document.getElementById("siteList");
+const button = document.getElementById("siteButton");
+
+button.onclick = (e) => {
+  e.stopPropagation();
+  dropdown.classList.toggle("hidden");
+};
+
+// Close dropdown when clicking outside
+document.addEventListener("click", function (e) {
+  if (!dropdown.contains(e.target)) {
+    dropdown.classList.add("hidden");
+  }
+});
+
+// Prevent dropdown from closing when clicking inside
+dropdown.addEventListener("click", function (e) {
+  e.stopPropagation();
+});
+
+// Select All checkbox
+document.getElementById('selectAll').onclick = function () {
+  const checkboxes = document.querySelectorAll('.site-list input[type="checkbox"]:not(#selectAll)');
+  checkboxes.forEach(cb => cb.checked = this.checked);
+};
+
+// Clear Filter button logic
+document.getElementById('clearFilterBtn').onclick = function () {
+  const checkboxes = document.querySelectorAll('.site-list input[type="checkbox"]');
+  checkboxes.forEach(cb => cb.checked = false);
+};
+
+
+    // // Build the checkbox list
+    // const siteListDiv = document.querySelector('.options');
+    // sites.forEach(site => {
+    //   const val = `${site.lat},${site.lon}`;
+    //   const label = document.createElement('label');
+    //   label.innerHTML = `<input type="checkbox" value="${val}"/> ${site.name}`;
+    //   siteListDiv.appendChild(label);
+    // });
+
+    // // Toggle dropdown
+    // document.getElementById('siteButton').onclick = () => {
+    //   document.getElementById('siteList').classList.toggle('hidden');
+    // };
+
+    // // Select all checkbox
+    // document.getElementById('selectAll').onclick = function () {
+    //   const checkboxes = document.querySelectorAll('.site-list input[type="checkbox"]:not(#selectAll)');
+    //   checkboxes.forEach(cb => cb.checked = this.checked);
+    // };
+
+    function getSelectedSites() {
+      const checked = Array.from(document.querySelectorAll('.site-list input[type="checkbox"]:checked:not(#selectAll)'));
+      return checked.map(cb => {
+        const [lat, lon] = cb.value.split(',');
+        return sites.find(site => site.lat == lat && site.lon == lon);
+      });
+    }
+
     const weatherCodes = {
       0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
       45: "Fog", 48: "Rime fog", 51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
@@ -60,18 +247,6 @@
       86: "Heavy snow showers", 95: "Thunderstorm", 96: "Thunderstorm with slight hail",
       99: "Thunderstorm with heavy hail"
     };
-
-    const dropdown = document.getElementById("siteDropdown");
-    const allOption = document.createElement("option");
-    allOption.value = "ALL_SITES";
-    allOption.text = "All Sites";
-    dropdown.appendChild(allOption);
-    sites.forEach(site => {
-      const option = document.createElement("option");
-      option.value = `${site.lat},${site.lon}`;
-      option.text = site.name;
-      dropdown.appendChild(option);
-    });
 
     function getWeatherClass(text) {
       const lower = text.toLowerCase();
@@ -100,15 +275,10 @@
     }
 
     async function getBothWeathers() {
-      const selectedValue = dropdown.value;
+      const selectedSites = getSelectedSites();
       document.getElementById("combinedOutput").innerHTML = "";
-
-      const siteList = selectedValue === "ALL_SITES"
-        ? sites
-        : [sites.find(site => `${site.lat},${site.lon}` === selectedValue)];
-
       let isFirst = true;
-      for (let site of siteList) {
+      for (let site of selectedSites) {
         await getOpenMeteoWeather(site.lat, site.lon, site.name, isFirst);
         isFirst = false;
       }
@@ -116,7 +286,6 @@
 
     async function getOpenMeteoWeather(lat, lon, siteName, isHeaderRequired = false) {
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,precipitation_sum,shortwave_radiation_sum&timezone=auto&forecast_days=14`;
-
       try {
         const res = await fetch(url);
         const data = await res.json();
@@ -128,8 +297,8 @@
           const precip = +data.daily.precipitation_sum[i].toFixed(1);
           row += `<td class="${getWeatherClass(cond)}">
             <div>${cond}</div>
-            <div class="${getGHIClass(ghi)}">GHI - ${ghi} kWh/m²</div>
-            <div class="${getPrecipClass(precip)}">Precip - ${precip} mm</div>
+            <div class="${getGHIClass(ghi)}">R - ${ghi}</div>
+            <div class="${getPrecipClass(precip)}">P - ${precip}</div>
           </td>`;
         });
         row += `</tr>`;
@@ -137,17 +306,73 @@
         if (isHeaderRequired) {
           let header = `<tr><th class="site-header">Sites</th>`;
           data.daily.time.forEach(date => {
-            header += `<th class="date-header">${date}</th>`;
+            const [yyyy, mm, dd] = date.split("-");
+            header += `<th class="date-header">${dd}-${mm}</th>`;
           });
           header += `</tr>`;
-          document.getElementById("combinedOutput").innerHTML += `<table>${header}${row}</table>`;
+          document.getElementById("combinedOutput").innerHTML += `<table><thead>${header}</thead><tbody>${row}</tbody></table>`;
         } else {
-          document.querySelector("#combinedOutput table").innerHTML += row;
+          document.querySelector("#combinedOutput table tbody").innerHTML += row;
         }
       } catch {
-        document.getElementById("combinedOutput").innerHTML += `<p style="color:red;">Error fetching Open‑Meteo for ${siteName}</p>`;
+        document.getElementById("combinedOutput").innerHTML += `<p style="color:red;">Error fetching weather for ${siteName}</p>`;
       }
     }
+
+  // function downloadExcel() {
+  //   const table = document.querySelector("#combinedOutput table");
+  //   if (!table) {
+  //     alert("Please fetch weather data first.");
+  //     return;
+  //   }
+
+  //   const workbook = XLSX.utils.book_new();
+  //   const worksheet = XLSX.utils.table_to_sheet(table, { raw: true });
+
+  //   // Optional: Add sheet name
+  //   XLSX.utils.book_append_sheet(workbook, worksheet, "Weather Forecast");
+
+  //   // Export the workbook
+  //   XLSX.writeFile(workbook, "weather_forecast.xlsx");
+  // }
+
+
+  async function downloadExcel() {
+    const table = document.querySelector("#combinedOutput table");
+    if (!table) {
+      alert("No data available to export.");
+      return;
+    }
+
+    const workbook = XLSX.utils.book_new();
+    const ws_data = [];
+    
+    // Extract table headers
+    const headerCells = table.querySelectorAll("thead th");
+    const headers = Array.from(headerCells).map(th => th.innerText.trim());
+    ws_data.push(headers);
+
+    // Extract table rows
+    const rows = table.querySelectorAll("tbody tr");
+    rows.forEach(row => {
+      const rowData = [];
+      row.querySelectorAll("td, th").forEach(cell => {
+        rowData.push(cell.innerText.trim());
+      });
+      ws_data.push(rowData);
+    });
+
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+    // Apply formatting: Freeze top row and style cells (through SheetJS hacks)
+    ws['!freeze'] = { xSplit: 1, ySplit: 1 }; // Freeze top row and left column
+    ws['!cols'] = headers.map(() => ({ wch: 20 })); // Set column width
+
+    XLSX.utils.book_append_sheet(workbook, ws, "Weather Report");
+    XLSX.writeFile(workbook, "Weather_Forecast.xlsx");
+  }
+
   </script>
 </body>
 </html>
