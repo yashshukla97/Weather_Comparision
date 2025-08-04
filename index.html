@@ -77,30 +77,11 @@
 </head>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 
 <body>
   <h2>14-Days Weather Forecast</h2>
 
-  <!-- <div class="top-bar">
-  <div>
-    <label>Select Site(s):</label>
-    <div class="site-selector">
-      <button id="siteButton">Select Sites </button>
-      <div id="siteList" class="site-list hidden">
-         <label><button id="clearFilterBtn" type="button">Clear Filter</button></label>
-        <label><input type="checkbox" id="selectAll"/> All Sites</label>
-        <div class="options"></div>
-      </div>
-    </div>
-    <button onclick="getBothWeathers()">Fetch Weather</button>
-    <button class="download-buttons" onclick="downloadExcel()">Download Excel</button>
-    <button class="download-buttons" onclick="downloadPDF()">Download PDF</button> 
-  </div>
-  <div class="legend">
-    <span><strong>R</strong> = Radiation (kWh/m²), <strong>P</strong> = Precipitation (mm)</span>
-  </div>
-</div> -->
 
 <div class="top-bar">
   <div class="left-buttons">
@@ -117,7 +98,8 @@
   </div>
 
   <div class="download-buttons">
-    <button onclick="downloadExcel()">Download Excel</button>
+    <button class="download-buttons" onclick="downloadStyledExcel()">Download Report</button>
+
   </div>
 
   <div class="legend">
@@ -207,27 +189,6 @@ document.getElementById('clearFilterBtn').onclick = function () {
   const checkboxes = document.querySelectorAll('.site-list input[type="checkbox"]');
   checkboxes.forEach(cb => cb.checked = false);
 };
-
-
-    // // Build the checkbox list
-    // const siteListDiv = document.querySelector('.options');
-    // sites.forEach(site => {
-    //   const val = `${site.lat},${site.lon}`;
-    //   const label = document.createElement('label');
-    //   label.innerHTML = `<input type="checkbox" value="${val}"/> ${site.name}`;
-    //   siteListDiv.appendChild(label);
-    // });
-
-    // // Toggle dropdown
-    // document.getElementById('siteButton').onclick = () => {
-    //   document.getElementById('siteList').classList.toggle('hidden');
-    // };
-
-    // // Select all checkbox
-    // document.getElementById('selectAll').onclick = function () {
-    //   const checkboxes = document.querySelectorAll('.site-list input[type="checkbox"]:not(#selectAll)');
-    //   checkboxes.forEach(cb => cb.checked = this.checked);
-    // };
 
     function getSelectedSites() {
       const checked = Array.from(document.querySelectorAll('.site-list input[type="checkbox"]:checked:not(#selectAll)'));
@@ -319,59 +280,135 @@ document.getElementById('clearFilterBtn').onclick = function () {
       }
     }
 
-  // function downloadExcel() {
+
+  // async function downloadExcel() {
   //   const table = document.querySelector("#combinedOutput table");
   //   if (!table) {
-  //     alert("Please fetch weather data first.");
+  //     alert("No data available to export.");
   //     return;
   //   }
 
   //   const workbook = XLSX.utils.book_new();
-  //   const worksheet = XLSX.utils.table_to_sheet(table, { raw: true });
+  //   const ws_data = [];
+    
+  //   // Extract table headers
+  //   const headerCells = table.querySelectorAll("thead th");
+  //   const headers = Array.from(headerCells).map(th => th.innerText.trim());
+  //   ws_data.push(headers);
 
-  //   // Optional: Add sheet name
-  //   XLSX.utils.book_append_sheet(workbook, worksheet, "Weather Forecast");
+  //   // Extract table rows
+  //   const rows = table.querySelectorAll("tbody tr");
+  //   rows.forEach(row => {
+  //     const rowData = [];
+  //     row.querySelectorAll("td, th").forEach(cell => {
+  //       rowData.push(cell.innerText.trim());
+  //     });
+  //     ws_data.push(rowData);
+  //   });
 
-  //   // Export the workbook
-  //   XLSX.writeFile(workbook, "weather_forecast.xlsx");
+  //   // Create worksheet
+  //   const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+  //   // Apply formatting: Freeze top row and style cells (through SheetJS hacks)
+  //   ws['!freeze'] = { xSplit: 1, ySplit: 1 }; // Freeze top row and left column
+  //   ws['!cols'] = headers.map(() => ({ wch: 20 })); // Set column width
+
+  //   XLSX.utils.book_append_sheet(workbook, ws, "Weather Report");
+  //   XLSX.writeFile(workbook, "Weather_Forecast.xlsx");
   // }
 
+async function downloadStyledExcel() {
+  const table = document.querySelector("#combinedOutput table");
+  if (!table) return alert("No table found.");
 
-  async function downloadExcel() {
-    const table = document.querySelector("#combinedOutput table");
-    if (!table) {
-      alert("No data available to export.");
-      return;
-    }
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Weather Report");
 
-    const workbook = XLSX.utils.book_new();
-    const ws_data = [];
-    
-    // Extract table headers
-    const headerCells = table.querySelectorAll("thead th");
-    const headers = Array.from(headerCells).map(th => th.innerText.trim());
-    ws_data.push(headers);
+  const rows = table.querySelectorAll("tr");
+  rows.forEach((tr, rowIndex) => {
+    const row = [];
+    const cells = tr.querySelectorAll("th, td");
+    cells.forEach((cell) => row.push(cell.innerText));
+    worksheet.addRow(row);
 
-    // Extract table rows
-    const rows = table.querySelectorAll("tbody tr");
-    rows.forEach(row => {
-      const rowData = [];
-      row.querySelectorAll("td, th").forEach(cell => {
-        rowData.push(cell.innerText.trim());
-      });
-      ws_data.push(rowData);
+    // Apply style row-wise
+    cells.forEach((cell, colIndex) => {
+      const excelCell = worksheet.getRow(rowIndex + 1).getCell(colIndex + 1);
+      excelCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+
+      // Header styling
+      if (tr.parentElement.tagName === "THEAD") {
+        excelCell.font = { bold: true };
+        excelCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'BDD7EE' }
+        };
+      } else {
+        // Weather class-based fill
+        const classList = cell.classList;
+
+if (classList.contains("sunny")) {
+  excelCell.fill = fill("#FFF4D3");  // light yellow
+} else if (classList.contains("cloudy")) {
+  excelCell.fill = fill("#E0E0E0");  // light grey
+} else if (classList.contains("overcast")) {
+  excelCell.fill = fill("#BFBFBF");  // darker grey
+} else if (classList.contains("rainy")) {
+  excelCell.fill = fill("#D0E3FF");  // soft blue
+} else if (classList.contains("drizzly")) {
+  excelCell.fill = fill("#B8D1F3");  // light blue-grey
+} else if (classList.contains("foggy")) {
+  excelCell.fill = fill("#D9D9D9");  // fog grey
+} else if (classList.contains("snowy")) {
+  excelCell.fill = fill("#EDF5FF");  // icy white-blue
+} else if (classList.contains("stormy")) {
+  excelCell.fill = fill("#1478dc");  // light purple
+} else if (classList.contains("freezing")) {
+  excelCell.fill = fill("#A9CCE3");  // cold blue
+} else if (classList.contains("unknown")) {
+  excelCell.fill = fill("#FFFFFF");  // white
+}
+
+// GHI color mapping
+else if (classList.contains("ghi-high")) {
+  excelCell.fill = fill("#C6EFCE");  // green
+} else if (classList.contains("ghi-medium")) {
+  excelCell.fill = fill("#FFEB9C");  // yellow
+} else if (classList.contains("ghi-low")) {
+  excelCell.fill = fill("#FFC7CE");  // red
+
+// Precipitation color mapping
+} else if (classList.contains("precip-high")) {
+  excelCell.fill = fill("#B4C6E7");  // blue
+} else if (classList.contains("precip-medium")) {
+  excelCell.fill = fill("#DDEBF7");  // light blue
+} else if (classList.contains("precip-low")) {
+  excelCell.fill = fill("#FFFFFF");  // white
+}
+
+      }
     });
+  });
 
-    // Create worksheet
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  worksheet.columns.forEach(col => col.width = 20);
 
-    // Apply formatting: Freeze top row and style cells (through SheetJS hacks)
-    ws['!freeze'] = { xSplit: 1, ySplit: 1 }; // Freeze top row and left column
-    ws['!cols'] = headers.map(() => ({ wch: 20 })); // Set column width
+  const blob = await workbook.xlsx.writeBuffer();
+  const url = window.URL.createObjectURL(new Blob([blob]));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Weather_Report.xlsx";
+  a.click();
 
-    XLSX.utils.book_append_sheet(workbook, ws, "Weather Report");
-    XLSX.writeFile(workbook, "Weather_Forecast.xlsx");
+  function fill(hex) {
+    return {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: hex.replace("#", "") }
+    };
   }
+}
+
 
   </script>
 </body>
