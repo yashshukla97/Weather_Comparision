@@ -126,8 +126,8 @@
       { name: "Yemmiganur", lat: 15.67, lon: 77.48 },
       { name: "Maddur", lat: 16.89, lon: 77.58 },
       { name: "Balanagar", lat: 16.94, lon: 78.13 },
-      { name: "Banka (Nalanda)", lat: 24.81, lon: 86.86 },
-      { name: "Banka (Magadh)", lat: 24.81, lon: 86.86 },
+      { name: "Banka (Nalanda)", lat: 24.8102, lon: 86.8601 },
+      { name: "Banka (Magadh)", lat: 24.8101, lon: 86.8602 },
       { name: "Mahoba", lat: 25.32, lon: 79.81 },
       { name: "Sadashivpet", lat: 17.70, lon: 77.81 },
       { name: "Padmajiwadi", lat: 18.41, lon: 78.21 },
@@ -140,22 +140,32 @@
       { name: "Bhadla-L3", lat: 27.48, lon: 71.99 },
       { name: "Sidlaghatta", lat: 13.48, lon: 77.90 },
       { name: "MSEDCL-2", lat: 27.50, lon: 72.47 },
-      { name: "Aklera", lat: 26.47, lon: 71.54 },
-      { name: "Deogarh", lat: 26.91, lon: 71.56 },
+      { name: "Aklera", lat: 26.47, lon: 71.5401 },
+      { name: "Deogarh", lat: 26.910, lon: 71.560 },
       { name: "Phalodi", lat: 26.90, lon: 71.55 },
       { name: "Raisar", lat: 26.94, lon: 71.54 },
-      { name: "Dhaulpur", lat: 26.91, lon: 71.56 },
+      { name: "Dhaulpur", lat: 26.911, lon: 71.561 },
       { name: "Sikar", lat: 28.14, lon: 72.99 }
     ];
 
     // Build checkbox list
+// const siteListDiv = document.querySelector('.options');
+// sites.forEach(site => {
+//   const val = `${site.lat},${site.lon}`;
+//   const label = document.createElement('label');
+//   label.innerHTML = `<input type="checkbox" value="${val}"/> ${site.name}`;
+//   siteListDiv.appendChild(label);
+// });
+
+// Build checkbox list with name|lat|lon format
 const siteListDiv = document.querySelector('.options');
 sites.forEach(site => {
-  const val = `${site.lat},${site.lon}`;
+  const val = `${site.name}|${site.lat}|${site.lon}`;
   const label = document.createElement('label');
   label.innerHTML = `<input type="checkbox" value="${val}"/> ${site.name}`;
   siteListDiv.appendChild(label);
 });
+
 
 // Toggle dropdown open/close
 const dropdown = document.getElementById("siteList");
@@ -190,13 +200,22 @@ document.getElementById('clearFilterBtn').onclick = function () {
   checkboxes.forEach(cb => cb.checked = false);
 };
 
+    // function getSelectedSites() {
+    //   const checked = Array.from(document.querySelectorAll('.site-list input[type="checkbox"]:checked:not(#selectAll)'));
+    //   return checked.map(cb => {
+    //     const [lat, lon] = cb.value.split(',');
+    //     return sites.find(site => site.lat == lat && site.lon == lon);
+    //   });
+    // }
+
     function getSelectedSites() {
-      const checked = Array.from(document.querySelectorAll('.site-list input[type="checkbox"]:checked:not(#selectAll)'));
-      return checked.map(cb => {
-        const [lat, lon] = cb.value.split(',');
-        return sites.find(site => site.lat == lat && site.lon == lon);
-      });
-    }
+  const checked = Array.from(document.querySelectorAll('.site-list input[type="checkbox"]:checked:not(#selectAll)'));
+  return checked.map(cb => {
+    const [name, lat, lon] = cb.value.split('|');
+    return { name, lat, lon };
+  });
+}
+
 
     const weatherCodes = {
       0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
@@ -235,50 +254,116 @@ document.getElementById('clearFilterBtn').onclick = function () {
       return "precip-high";
     }
 
-    async function getBothWeathers() {
-      const selectedSites = getSelectedSites();
-      document.getElementById("combinedOutput").innerHTML = "";
-      let isFirst = true;
-      for (let site of selectedSites) {
-        await getOpenMeteoWeather(site.lat, site.lon, site.name, isFirst);
-        isFirst = false;
-      }
-    }
+    // async function getBothWeathers() {
+    //   const selectedSites = getSelectedSites();
+    //   document.getElementById("combinedOutput").innerHTML = "";
+    //   let isFirst = true;
+    //   for (let site of selectedSites) {
+    //     await getOpenMeteoWeather(site.lat, site.lon, site.name, isFirst);
+    //     isFirst = false;
+    //   }
+    // }
+
+async function getBothWeathers() {
+  const selectedSites = getSelectedSites();
+  document.getElementById("combinedOutput").innerHTML = "";
+
+  if (selectedSites.length === 0) return;
+
+  // Step 1: Fetch the first site separately to get header
+  const firstSite = selectedSites[0];
+  let { header, body } = await getOpenMeteoWeather(firstSite.lat, firstSite.lon, firstSite.name, true);
+
+  // Step 2: Fetch the remaining sites in parallel
+  const restSites = selectedSites.slice(1);
+  const restPromises = restSites.map(site =>
+    getOpenMeteoWeather(site.lat, site.lon, site.name, false)
+  );
+
+  const restResults = await Promise.all(restPromises);
+
+  // Step 3: Combine all rows
+  let allBody = body + restResults.map(r => r.body).join("");
+
+  // Step 4: Render final table
+  document.getElementById("combinedOutput").innerHTML = `<table><thead>${header}</thead><tbody>${allBody}</tbody></table>`;
+}
+
+
+
+
+    // async function getOpenMeteoWeather(lat, lon, siteName, isHeaderRequired = false) {
+    //   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,precipitation_sum,shortwave_radiation_sum&timezone=auto&forecast_days=14`;
+    //   try {
+    //     const res = await fetch(url);
+    //     const data = await res.json();
+
+    //     let row = `<tr><th class="site-column" style="text-align:center;">${siteName}</th>`;
+    //     data.daily.time.forEach((date, i) => {
+    //       const cond = weatherCodes[data.daily.weathercode[i]] || "Unknown";
+    //       const ghi = +(data.daily.shortwave_radiation_sum[i] * 0.277778).toFixed(1);
+    //       const precip = +data.daily.precipitation_sum[i].toFixed(1);
+    //       row += `<td class="${getWeatherClass(cond)}">
+    //         <div>${cond}</div>
+    //         <div class="${getGHIClass(ghi)}">R - ${ghi}</div>
+    //         <div class="${getPrecipClass(precip)}">P - ${precip}</div>
+    //       </td>`;
+    //     });
+    //     row += `</tr>`;
+
+    //     if (isHeaderRequired) {
+    //       let header = `<tr><th class="site-header">Sites</th>`;
+    //       data.daily.time.forEach(date => {
+    //         const [yyyy, mm, dd] = date.split("-");
+    //         header += `<th class="date-header">${dd}-${mm}</th>`;
+    //       });
+    //       header += `</tr>`;
+    //       document.getElementById("combinedOutput").innerHTML += `<table><thead>${header}</thead><tbody>${row}</tbody></table>`;
+    //     } else {
+    //       document.querySelector("#combinedOutput table tbody").innerHTML += row;
+    //     }
+    //   } catch {
+    //     document.getElementById("combinedOutput").innerHTML += `<p style="color:red;">Error fetching weather for ${siteName}</p>`;
+    //   }
+    // }
 
     async function getOpenMeteoWeather(lat, lon, siteName, isHeaderRequired = false) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,precipitation_sum,shortwave_radiation_sum&timezone=auto&forecast_days=14`;
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,precipitation_sum,shortwave_radiation_sum&timezone=auto&forecast_days=14`;
 
-        let row = `<tr><th class="site-column" style="text-align:center;">${siteName}</th>`;
-        data.daily.time.forEach((date, i) => {
-          const cond = weatherCodes[data.daily.weathercode[i]] || "Unknown";
-          const ghi = +(data.daily.shortwave_radiation_sum[i] * 0.277778).toFixed(1);
-          const precip = +data.daily.precipitation_sum[i].toFixed(1);
-          row += `<td class="${getWeatherClass(cond)}">
-            <div>${cond}</div>
-            <div class="${getGHIClass(ghi)}">R - ${ghi}</div>
-            <div class="${getPrecipClass(precip)}">P - ${precip}</div>
-          </td>`;
-        });
-        row += `</tr>`;
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
 
-        if (isHeaderRequired) {
-          let header = `<tr><th class="site-header">Sites</th>`;
-          data.daily.time.forEach(date => {
-            const [yyyy, mm, dd] = date.split("-");
-            header += `<th class="date-header">${dd}-${mm}</th>`;
-          });
-          header += `</tr>`;
-          document.getElementById("combinedOutput").innerHTML += `<table><thead>${header}</thead><tbody>${row}</tbody></table>`;
-        } else {
-          document.querySelector("#combinedOutput table tbody").innerHTML += row;
-        }
-      } catch {
-        document.getElementById("combinedOutput").innerHTML += `<p style="color:red;">Error fetching weather for ${siteName}</p>`;
-      }
+    let row = `<tr><th class="site-column" style="text-align:center;">${siteName}</th>`;
+    data.daily.time.forEach((date, i) => {
+      const cond = weatherCodes[data.daily.weathercode[i]] || "Unknown";
+      const ghi = +(data.daily.shortwave_radiation_sum[i] * 0.277778).toFixed(1);
+      const precip = +data.daily.precipitation_sum[i].toFixed(1);
+      row += `<td class="${getWeatherClass(cond)}">
+        <div>${cond}</div>
+        <div class="${getGHIClass(ghi)}">R - ${ghi}</div>
+        <div class="${getPrecipClass(precip)}">P - ${precip}</div>
+      </td>`;
+    });
+    row += `</tr>`;
+
+    let header = "";
+    if (isHeaderRequired) {
+      header = `<tr><th class="site-header">Sites</th>`;
+      data.daily.time.forEach(date => {
+        const [yyyy, mm, dd] = date.split("-");
+        header += `<th class="date-header">${dd}-${mm}</th>`;
+      });
+      header += `</tr>`;
     }
+
+    return { header, body: row };
+  } catch (err) {
+    return {
+      error: `<p style="color:red;">Error fetching weather for ${siteName}</p>`
+    };
+  }
+}
 
 
   // async function downloadExcel() {
@@ -363,7 +448,7 @@ if (classList.contains("sunny")) {
 } else if (classList.contains("snowy")) {
   excelCell.fill = fill("#EDF5FF");  // icy white-blue
 } else if (classList.contains("stormy")) {
-  excelCell.fill = fill("#1478dc");  // light purple
+  excelCell.fill = fill("#f8bbd0");  // light red
 } else if (classList.contains("freezing")) {
   excelCell.fill = fill("#A9CCE3");  // cold blue
 } else if (classList.contains("unknown")) {
